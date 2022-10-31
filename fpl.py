@@ -1,5 +1,3 @@
-from operator import ge
-from re import T
 import requests
 import json
 
