@@ -2,13 +2,26 @@ from operator import ge
 from re import T
 import requests
 import json
-import pprint
 
 url = "https://fantasy.premierleague.com/api/"
 
+def get_live_gameweeks():
+    gameweeks = []
+    ext = "bootstrap-static/"
+    response = requests.get(url+ext)
+    if response.status_code != 200:
+        raise Exception("Reponse code was "+str(response.status_code))
+    data = json.loads(response.text)
+
+    for i in data.keys():
+        if i == "events":
+            for gameweek in data[i]:
+                if gameweek.get("finished"):
+                    gameweeks.append(gameweek.get("name").strip("Gameweek ").encode("utf-8") )
+    return gameweeks
+
 def get_league():
     ext = "leagues-classic/152825/standings/"
-    #ext = "leagues-classic/893700/standings/"
 
     response = requests.get(url+ext)
     if response.status_code != 200:
@@ -34,7 +47,7 @@ def get_entry_id(team):
 def get_team_name(team):
      for k in team.keys():
         if k == "entry_name":
-            return team[k]   
+            return team[k].encode("utf-8") 
 
 def get_picks(entry_id, gameweek):
     ext = "entry/{}/event/{}/picks/".format(entry_id, gameweek)
@@ -76,6 +89,8 @@ def get_player_gameweek_stats(player_id, gameweek):
             for fixture in data[i]:
                 for k in fixture.keys():
                     if k == "round" and fixture[k] == int(gameweek):
+                        if type(fixture) == type(None):
+                            return None
                         return fixture
 
 def calculate_penalties(fixture):
@@ -94,12 +109,12 @@ def calculate_penalties(fixture):
 
 def main():
     overall_scores = {}
-    gameweeks = ["1", "2", "3"]
+    gameweeks = get_live_gameweeks()
     league_data = get_league()
     teams = get_teams(league_data)
     for gameweek in gameweeks:
         gameweek_scores = {}
-        print("Gameweek: {}".format(gameweek))
+        print("Gameweek {}".format(gameweek))
         for team in teams:
             team_name = get_team_name(team)
             entry_id = get_entry_id(team)
@@ -109,6 +124,8 @@ def main():
             penalty = 0
             for player in player_ids:
                 fixture = get_player_gameweek_stats(player, gameweek)
+                if fixture == None:
+                    continue
                 penalty += calculate_penalties(fixture)
             if team_name not in gameweek_scores.keys():
                 gameweek_scores[team_name] = penalty
@@ -120,16 +137,11 @@ def main():
             else:
                 overall_scores[team_name] += penalty
         for i in sorted(gameweek_scores, key=gameweek_scores.get, reverse=True):
-            print(i, gameweek_scores[i])
+            print(str(i)+": "+str(gameweek_scores[i]))
+        print("\n")
 
-    print("\n Overall Scores:")
+    print("Overall Scores")
     for i in sorted(overall_scores, key=overall_scores.get, reverse=True):
-            print(i, overall_scores[i])
-            
+            print(str(i)+": "+str(overall_scores[i]))
 
-    
 main()
-
-#automatically populate live gameweeks
-# sort results like a table
-#find out how automatic subs work, does the multiplier automatically update? yes it does
