@@ -12,7 +12,6 @@ def get_live_gameweeks():
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
     data = json.loads(response.text)
-
     for i in data.keys():
         if i == "events":
             for gameweek in data[i]:
@@ -22,7 +21,6 @@ def get_live_gameweeks():
 
 def get_league():
     ext = "leagues-classic/152825/standings/"
-
     response = requests.get(url+ext)
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
@@ -107,11 +105,8 @@ def calculate_penalties(fixture):
     penalty = yellow_cards + (red_cards*3) + (own_goals*2)
     return penalty
 
-def main():
+def calculate_table(gameweeks, teams):
     overall_scores = {}
-    gameweeks = get_live_gameweeks()
-    league_data = get_league()
-    teams = get_teams(league_data)
     for gameweek in gameweeks:
         gameweek_scores = {}
         print("Gameweek {}".format(gameweek))
@@ -143,5 +138,11 @@ def main():
     print("Overall Scores")
     for i in sorted(overall_scores, key=overall_scores.get, reverse=True):
             print(str(i)+": "+str(overall_scores[i]))
+
+def main():
+    gameweeks = get_live_gameweeks()
+    league_data = get_league()
+    teams = get_teams(league_data)
+    calculate_table(gameweeks, teams)
 
 main()
