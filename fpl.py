@@ -1,12 +1,12 @@
-import requests
 import json
+import requests
 
-url = "https://fantasy.premierleague.com/api/"
+URL = "https://fantasy.premierleague.com/api/"
 
 def get_live_gameweeks():
     gameweeks = []
     ext = "bootstrap-static/"
-    response = requests.get(url+ext)
+    response = requests.get(URL+ext)
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
     data = json.loads(response.text)
@@ -14,12 +14,12 @@ def get_live_gameweeks():
         if i == "events":
             for gameweek in data[i]:
                 if gameweek.get("finished"):
-                    gameweeks.append(gameweek.get("name").strip("Gameweek ").encode("utf-8") )
+                    gameweeks.append(gameweek.get("name").strip("Gameweek "))
     return gameweeks
 
 def get_league():
     ext = "leagues-classic/152825/standings/"
-    response = requests.get(url+ext)
+    response = requests.get(URL+ext)
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
     data = json.loads(response.text)
@@ -41,13 +41,13 @@ def get_entry_id(team):
             return team[k]
 
 def get_team_name(team):
-     for k in team.keys():
+    for k in team.keys():
         if k == "entry_name":
-            return team[k].encode("utf-8") 
+            return team[k]
 
 def get_picks(entry_id, gameweek):
-    ext = "entry/{}/event/{}/picks/".format(entry_id, gameweek)
-    response = requests.get(url+ext)
+    ext = f"entry/{entry_id}/event/{gameweek}/picks/"
+    response = requests.get(URL+ext)
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
     data = json.loads(response.text)
@@ -75,8 +75,8 @@ def get_player_ids(picks):
     return player_ids
 
 def get_player_gameweek_stats(player_id, gameweek):
-    ext = "element-summary/{}/".format(player_id)
-    response = requests.get(url+ext)
+    ext = f"element-summary/{player_id}/"
+    response = requests.get(URL+ext)
     if response.status_code != 200:
         raise Exception("Reponse code was "+str(response.status_code))
     data = json.loads(response.text)
@@ -107,7 +107,7 @@ def calculate_table(gameweeks, teams):
     overall_scores = {}
     for gameweek in gameweeks:
         gameweek_scores = {}
-        print("Gameweek {}".format(gameweek))
+        print(f"Gameweek {gameweek}")
         for team in teams:
             team_name = get_team_name(team)
             entry_id = get_entry_id(team)
@@ -117,15 +117,15 @@ def calculate_table(gameweeks, teams):
             penalty = 0
             for player in player_ids:
                 fixture = get_player_gameweek_stats(player, gameweek)
-                if fixture == None:
+                if fixture is None:
                     continue
                 penalty += calculate_penalties(fixture)
-            if team_name not in gameweek_scores.keys():
+            if team_name not in gameweek_scores:
                 gameweek_scores[team_name] = penalty
             else:
                 gameweek_scores[team_name] += penalty
-            
-            if team_name not in overall_scores.keys():
+
+            if team_name not in overall_scores:
                 overall_scores[team_name] = penalty
             else:
                 overall_scores[team_name] += penalty
@@ -135,7 +135,7 @@ def calculate_table(gameweeks, teams):
 
     print("Overall Scores")
     for i in sorted(overall_scores, key=overall_scores.get, reverse=True):
-            print(str(i)+": "+str(overall_scores[i]))
+        print(str(i)+": "+str(overall_scores[i]))
 
 def main():
     gameweeks = get_live_gameweeks()
